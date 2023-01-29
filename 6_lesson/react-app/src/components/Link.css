@@ -1,0 +1,16 @@
+.link {
+  cursor: pointer;
+  list-style-type: none;
+  color: cadetblue;
+  font-size: large;
+  font-weight: 600;
+  border-bottom: solid cadetblue 1px;
+}
+
+.mt-5 {
+  margin-top: 5rem;
+}
+
+.ml-2 {
+  margin-left: 2rem;
+}
