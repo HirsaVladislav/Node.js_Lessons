@@ -1,18 +1,29 @@
 const router = require("express").Router();
-const { hash, compare } = require("./controllers/bcrypt");
-const { User } = require("./schemas/User.js");
+const { User } = require("../schemas/User.js");
+const jwt = require('jsonwebtoken');
+const { auth } = require("../controllers/auth.js");
+require("dotenv").config({ path: `${__dirname}/../.env` });
+
+
+router.get('/', auth, async(req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ message: error.message });
+  }
+})
 
 router.post("/create", async (req, res) => {
   try {
-    console.log(req.body);
-    const { email, password } = req.body;
+    const { email, password, name, age, role } = req.body;
+
     if (!email) return res.status(400).json({ message: "Not valid email" });
     if (!password)
       return res.status(400).json({ message: "Not valid password" });
 
-    const user = await User({ email });
-    const hashPass = await hash(password);
-    user.password = hashPass;
+    const user = await User({ email, password, name, age, role });
 
     await user.save();
     res.send(user);
@@ -22,6 +33,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -30,19 +42,26 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Not valid password" });
 
     const exists = await User.exists({ email });
-    console.log("exists", exists);
+
     if (!exists)
       return res
         .status(400)
         .json({ message: `User by email ${email} not found` });
 
-    const user = await User.findOne({ email }, "_id email password").lean();
-    const passed = await compare(password, user.password);
+    const user = await User.findOne({ email });
+    const passed = await user.checkPassword(password);
+
     if (!passed)
     return res
       .status(400)
       .json({ message: `User password ${password} not valid` });
-    res.send(user);
+
+    const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '1d' });
+
+    res.status(200).send({
+      message: 'SUCCESS',
+      token
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
